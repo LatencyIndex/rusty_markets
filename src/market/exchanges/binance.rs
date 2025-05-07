@@ -17,6 +17,7 @@ use url::Url;
 struct BinanceRawOrderBook {
     asks: Vec<Vec<String>>,
     bids: Vec<Vec<String>>,
+    // TODO: Is this the right number type?
     lastUpdateId: u128,
 }
 
@@ -48,6 +49,7 @@ impl TryFrom<BinanceRawOrderBook> for OrderBook {
 // TODO: A clean way to select channel (i.e. the currency pair, and any other characteristics)
 // TODO: Guard against using the wrong domain. Possibly hardcode domain, and use an enum to select subdomain,
 //       without exposing any raw URLs to the user, to eliminate possibility of error there.
+// TODO: Don't omit errors.
 pub fn order_stream(url: &Url) -> impl Stream<Item = OrderBook> {
     let config = DurableWSConfig::default();
     DurableWebSocket::new(url, config)
