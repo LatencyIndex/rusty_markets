@@ -1,15 +1,27 @@
 use futures_util::StreamExt;
-use rust_l2::market::exchanges::binance;
+use rust_l2::market::exchanges::{binance, bitstamp};
 use std::pin::pin;
 use url::Url;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn _binance_example() -> Result<(), Box<dyn std::error::Error>> {
     let url = Url::parse("wss://stream.binance.com:9443/ws/ethbtc@depth20@100ms")?;
     let mut stream = pin!(binance::order_stream(&url).take(3));
     while let Some(x) = stream.next().await {
-        println!("{x:?}");
+        println!("{x:#?}");
     }
-
     Ok(())
+}
+
+async fn _bitstamp_example() -> Result<(), Box<dyn std::error::Error>> {
+    let url = Url::parse("wss://ws.bitstamp.net")?;
+    let mut stream = pin!(bitstamp::order_stream(&url).await.take(3));
+    while let Some(x) = stream.next().await {
+        println!("{x:#?}");
+    }
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    _bitstamp_example().await
 }
