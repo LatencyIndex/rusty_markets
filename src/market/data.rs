@@ -1,3 +1,5 @@
+//! Elemental market datatypes, not specific to any exchange.
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
