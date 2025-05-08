@@ -10,7 +10,7 @@ use std::pin::pin;
 
 async fn _binance_example() -> Result<(), Box<dyn std::error::Error>> {
     let symbol = currencies::SymbolPair::new("ethbtc".to_string())?;
-    let mut stream = pin!(binance::order_stream(symbol, DurableWSConfig::default()).take(3));
+    let mut stream = pin!(binance::order_stream(&symbol, DurableWSConfig::default()).take(3));
     while let Some(x) = stream.next().await {
         println!("{x:#?}");
     }
@@ -19,7 +19,7 @@ async fn _binance_example() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn _bitstamp_example() -> Result<(), Box<dyn std::error::Error>> {
     let symbol = currencies::SymbolPair::new("ethbtc".to_string())?;
-    let mut stream = pin!(bitstamp::order_stream(symbol, DurableWSConfig::default()).take(3));
+    let mut stream = pin!(bitstamp::order_stream(&symbol, DurableWSConfig::default()).take(3));
     while let Some(x) = stream.next().await {
         println!("{x:#?}");
     }

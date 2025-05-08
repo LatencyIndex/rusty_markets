@@ -87,12 +87,12 @@ impl SubRequest {
 
 // TODO: Don't omit errors.
 pub fn order_stream(
-    symbol: currencies::SymbolPair,
+    symbol: &currencies::SymbolPair,
     config: DurableWSConfig,
 ) -> impl Stream<Item = OrderBook> {
     // Hardcode URL, because this is not intended for use with any other address.
     let url = Url::parse("wss://ws.bitstamp.net").unwrap();
-    let sub_request = SubRequest::new(symbol).to_message().unwrap();
+    let sub_request = SubRequest::new(symbol.clone()).to_message().unwrap();
     DurableWebSocket::new(url, config, vec![sub_request])
         .into_stream()
         // Keep only Text messages

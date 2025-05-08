@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct SymbolPair(String);
 
 impl SymbolPair {

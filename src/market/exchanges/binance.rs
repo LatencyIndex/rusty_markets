@@ -50,7 +50,7 @@ impl TryFrom<BinanceRawOrderBook> for OrderBook {
 
 // TODO: Don't omit errors.
 pub fn order_stream(
-    symbol: currencies::SymbolPair,
+    symbol: &currencies::SymbolPair,
     config: DurableWSConfig,
 ) -> impl Stream<Item = OrderBook> {
     let url = Url::parse(&format!(
