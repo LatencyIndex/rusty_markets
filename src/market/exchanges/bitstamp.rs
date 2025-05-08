@@ -78,13 +78,11 @@ impl SubRequest {
     }
 }
 
-// TODO: Pass DurableWSConfig by parameter
 // TODO: A clean way to select channel (i.e. the currency pair, and any other characteristics)
-// TODO: Guard against using the wrong domain. Possibly hardcode domain, and use an enum to select subdomain,
-//       without exposing any raw URLs to the user, to eliminate possibility of error there.
 // TODO: Don't omit errors.
-pub async fn order_stream(url: &Url) -> impl Stream<Item = OrderBook> {
-    let config = DurableWSConfig::default();
+pub async fn order_stream(config: DurableWSConfig) -> impl Stream<Item = OrderBook> {
+    // Hardcode URL because this is not intended for use with any other address.
+    let url = Url::parse("wss://ws.bitstamp.net").unwrap();
     let sub_request = SubRequest::new("order_book_ethbtc".to_string())
         .to_message()
         .unwrap();
