@@ -45,13 +45,11 @@ impl TryFrom<BinanceRawOrderBook> for OrderBook {
     }
 }
 
-// TODO: Pass DurableWSConfig by parameter
 // TODO: A clean way to select channel (i.e. the currency pair, and any other characteristics)
 // TODO: Guard against using the wrong domain. Possibly hardcode domain, and use an enum to select subdomain,
 //       without exposing any raw URLs to the user, to eliminate possibility of error there.
 // TODO: Don't omit errors.
-pub fn order_stream(url: &Url) -> impl Stream<Item = OrderBook> {
-    let config = DurableWSConfig::default();
+pub fn order_stream(url: &Url, config: DurableWSConfig) -> impl Stream<Item = OrderBook> {
     DurableWebSocket::new(url, config, vec![])
         .into_stream()
         // Keep only Text messages
