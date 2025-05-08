@@ -28,6 +28,7 @@ fn is_currency_pair(s: &str) -> bool {
 // Currency pairs accepted by the bitstamp exchange, sorted alphabetically.
 // Source: https://www.bitstamp.net/websocket/v2/
 // TODO: Find such a list for individual currencies, and for binance.
+//       Then you can do this even cleaner, with enums.
 const BITSTAMP_CURRENCY_PAIRS: [&str; 245] = [
     "1incheur",
     "1inchusd",
