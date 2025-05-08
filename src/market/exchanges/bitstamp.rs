@@ -103,10 +103,7 @@ pub async fn order_stream(url: &Url) -> impl Stream<Item = OrderBook> {
                     .parse::<BitstampRawOrderBook>()
                     .and_then(OrderBook::try_from)
                     .ok(),
-                _ => {
-                    println!("got none");
-                    None
-                }
+                _ => None,
             }
         })
 }
