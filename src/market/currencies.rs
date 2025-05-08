@@ -14,6 +14,12 @@ impl CurrencyPairStr {
     }
 }
 
+impl std::fmt::Display for CurrencyPairStr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.get().fmt(f)
+    }
+}
+
 // Whether the string represents a valid Bitstamp currency pair.
 fn is_currency_pair(s: &str) -> bool {
     BITSTAMP_CURRENCY_PAIRS.binary_search(&s).is_ok()
