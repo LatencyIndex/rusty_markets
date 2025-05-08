@@ -1,10 +1,15 @@
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use tokio::time::{Duration, Instant};
 
+#[derive(Clone, Copy)]
+pub struct ExpBackoffConfig {
+    pub wait_min: Duration,
+    pub wait_max: Duration,
+}
+
 /// Self-contained exponential backoff with jitter.
 pub struct ExpBackoff {
-    wait_min: Duration,
-    wait_max: Duration,
+    config: ExpBackoffConfig,
     attempts: u32,
     last_fail: Option<Instant>,
     // Time to wait after last_fail.
@@ -14,10 +19,9 @@ pub struct ExpBackoff {
 }
 
 impl ExpBackoff {
-    pub fn new(wait_min: Duration, wait_max: Duration) -> Self {
+    pub fn new(config: ExpBackoffConfig) -> Self {
         Self {
-            wait_min,
-            wait_max,
+            config,
             attempts: 0,
             last_fail: None,
             wait_total: Duration::ZERO,
@@ -36,9 +40,10 @@ impl ExpBackoff {
         } else {
             // Double wait time for each failed attempt
             let dt = self
+                .config
                 .wait_min
                 .saturating_mul(2_u32.saturating_pow(self.attempts))
-                .min(self.wait_max);
+                .min(self.config.wait_max);
             // On attempt 1, dt = 2^1 * wait_min, dt/2 = wait_min
             // so even after jitter, it is always the case that wait >= wait_min
             self.rng.random_range((dt / 2)..=dt)

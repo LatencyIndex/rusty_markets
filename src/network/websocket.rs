@@ -1,4 +1,4 @@
-use crate::network::backoff::ExpBackoff;
+use crate::network::backoff::{ExpBackoff, ExpBackoffConfig};
 use async_stream::stream;
 use futures_util::{SinkExt, Stream, StreamExt};
 use thiserror::Error;
@@ -35,6 +35,7 @@ where
     Ok(stream)
 }
 
+#[derive(Clone, Copy)]
 pub struct DurableWSConfig {
     /// If longer than this is spent waiting to receive a message, the connection is considered dead,
     /// is dropped, and a re-connect and re-send are attempted.
@@ -43,7 +44,7 @@ pub struct DurableWSConfig {
     /// the connection is considered irreparable, and no further attempts are made.
     pub final_timeout: Duration,
     /// Exponential backoff parameters for reconnection attempts.
-    pub backoff: ExpBackoff,
+    pub backoff: ExpBackoffConfig,
 }
 
 impl Default for DurableWSConfig {
@@ -51,7 +52,10 @@ impl Default for DurableWSConfig {
         Self {
             retry_timeout: Duration::from_secs(10),
             final_timeout: Duration::from_secs(60),
-            backoff: ExpBackoff::new(Duration::from_secs(2), Duration::from_secs(60)),
+            backoff: ExpBackoffConfig {
+                wait_min: Duration::from_secs(2),
+                wait_max: Duration::from_secs(60),
+            },
         }
     }
 }
@@ -63,6 +67,7 @@ pub struct DurableWebSocket<R> {
     config: DurableWSConfig,
     stream: Option<WSStream>,
     inits: Vec<Message>,
+    backoff: ExpBackoff,
 }
 
 impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
@@ -74,6 +79,7 @@ impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
             config,
             stream: None,
             inits,
+            backoff: ExpBackoff::new(config.backoff),
         }
     }
     /// Continuously tries to receive a message, reconnecting as necessary.
@@ -83,13 +89,12 @@ impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
                 // Disconnected - try to connect
                 None => {
                     // Exponential backoff to not spam the server
-                    self.config.backoff.wait().await;
-                    self.config.backoff.start_attempt();
+                    self.backoff.wait().await;
+                    self.backoff.start_attempt();
                     // Instead of wasting the time between when the connection attempt times out,
                     // and when the next attempt can start due to backoff,
                     // we use it to give the connection more time to complete.
                     let extended_timeout = self
-                        .config
                         .backoff
                         .remaining_wait()
                         .unwrap_or(Duration::ZERO)
@@ -104,7 +109,7 @@ impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
                     .and_then(Result::ok);
                     // Update backoff
                     if self.stream.is_some() {
-                        self.config.backoff.reset();
+                        self.backoff.reset();
                     }
                 }
                 // Connected - try to receive a message
@@ -128,7 +133,7 @@ impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
     /// Drop connection and reset exponential backoff.
     pub fn reset(&mut self) {
         self.stream = None;
-        self.config.backoff.reset();
+        self.backoff.reset();
     }
     /// Convert into a stream via try_recv.
     // Implementing the Stream trait is 'non-trivial', so we settle for converting into a new Stream object.
