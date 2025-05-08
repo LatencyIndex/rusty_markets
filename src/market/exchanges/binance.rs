@@ -1,5 +1,8 @@
 use crate::{
-    market::data::{Order, OrderBook, ParseError},
+    market::{
+        currencies,
+        data::{Order, OrderBook, ParseError},
+    },
     network::websocket::{DurableWSConfig, DurableWebSocket},
 };
 use futures_util::{Stream, StreamExt};
@@ -45,11 +48,15 @@ impl TryFrom<BinanceRawOrderBook> for OrderBook {
     }
 }
 
-// TODO: A clean way to select channel (i.e. the currency pair, and any other characteristics)
-// TODO: Guard against using the wrong domain. Possibly hardcode domain, and use an enum to select subdomain,
-//       without exposing any raw URLs to the user, to eliminate possibility of error there.
 // TODO: Don't omit errors.
-pub fn order_stream(url: &Url, config: DurableWSConfig) -> impl Stream<Item = OrderBook> {
+pub fn order_stream(
+    symbol: currencies::SymbolPair,
+    config: DurableWSConfig,
+) -> impl Stream<Item = OrderBook> {
+    let url = Url::parse(&format!(
+        "wss://stream.binance.com:9443/ws/{symbol}@depth20@100ms"
+    ))
+    .unwrap();
     DurableWebSocket::new(url, config, vec![])
         .into_stream()
         // Keep only Text messages

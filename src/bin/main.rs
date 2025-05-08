@@ -7,11 +7,10 @@ use rust_l2::{
     network::websocket::DurableWSConfig,
 };
 use std::pin::pin;
-use url::Url;
 
 async fn _binance_example() -> Result<(), Box<dyn std::error::Error>> {
-    let url = Url::parse("wss://stream.binance.com:9443/ws/ethbtc@depth20@100ms")?;
-    let mut stream = pin!(binance::order_stream(&url, DurableWSConfig::default()).take(3));
+    let symbol = currencies::SymbolPair::new("ethbtc".to_string())?;
+    let mut stream = pin!(binance::order_stream(symbol, DurableWSConfig::default()).take(3));
     while let Some(x) = stream.next().await {
         println!("{x:#?}");
     }
