@@ -1,3 +1,5 @@
+//! Bitstamp WebSocket API documentation: https://www.bitstamp.net/websocket/v2/
+
 use crate::{
     market::data::{Order, OrderBook, ParseError},
     network::websocket::{DurableWSConfig, DurableWebSocket},
