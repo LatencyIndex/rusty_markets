@@ -1,10 +1,10 @@
-pub struct CurrencyPairStr(String);
+pub struct SymbolPair(String);
 
-impl CurrencyPairStr {
+impl SymbolPair {
     /// Yields None if the string does not represent a valid currency pair.
-    pub fn new(s: String) -> Result<CurrencyPairStr, String> {
+    pub fn new(s: String) -> Result<SymbolPair, String> {
         if is_currency_pair(s.as_str()) {
-            Ok(CurrencyPairStr(s))
+            Ok(SymbolPair(s))
         } else {
             Err(format!("{s} is not a valid currency pair"))
         }
@@ -14,7 +14,7 @@ impl CurrencyPairStr {
     }
 }
 
-impl std::fmt::Display for CurrencyPairStr {
+impl std::fmt::Display for SymbolPair {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.get().fmt(f)
     }
