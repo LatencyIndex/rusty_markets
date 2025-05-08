@@ -86,7 +86,7 @@ impl SubRequest {
 }
 
 // TODO: Don't omit errors.
-pub async fn order_stream(
+pub fn order_stream(
     symbol: currencies::SymbolPair,
     config: DurableWSConfig,
 ) -> impl Stream<Item = OrderBook> {
