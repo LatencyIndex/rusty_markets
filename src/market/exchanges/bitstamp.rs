@@ -85,20 +85,17 @@ impl SubRequest {
 // TODO: Don't omit errors.
 pub async fn order_stream(url: &Url) -> impl Stream<Item = OrderBook> {
     let config = DurableWSConfig::default();
-    let mut stream = DurableWebSocket::new(url, config);
-    let request = SubRequest::new("order_book_ethbtc".to_string())
+    let sub_request = SubRequest::new("order_book_ethbtc".to_string())
         .to_message()
         .unwrap();
-    // TODO: Do this durably.
-    stream.send(request).await.unwrap();
-    stream
+    DurableWebSocket::new(url, config, vec![sub_request])
         .into_stream()
         // Keep only Text messages
         .filter_map(|x| async {
             match x {
                 // Don't use Message's own .to_text() method,
                 // because it will try to convert binary Messages also.
-                Ok(Message::Text(msg)) => msg
+                Message::Text(msg) => msg
                     .as_str()
                     .parse::<BitstampRawOrderBook>()
                     .and_then(OrderBook::try_from)
