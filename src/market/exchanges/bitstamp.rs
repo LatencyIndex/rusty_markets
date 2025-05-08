@@ -1,7 +1,10 @@
 //! Bitstamp WebSocket API documentation: https://www.bitstamp.net/websocket/v2/
 
 use crate::{
-    market::data::{Order, OrderBook, ParseError},
+    market::{
+        currencies,
+        data::{Order, OrderBook, ParseError},
+    },
     network::websocket::{DurableWSConfig, DurableWebSocket},
 };
 use futures_util::{Stream, StreamExt};
@@ -69,10 +72,12 @@ struct SubRequest {
 }
 
 impl SubRequest {
-    fn new(channel: String) -> Self {
+    fn new(symbol: currencies::SymbolPair) -> Self {
         SubRequest {
             event: "bts:subscribe".to_string(),
-            data: ChannelDef { channel },
+            data: ChannelDef {
+                channel: format!("order_book_{symbol}"),
+            },
         }
     }
     fn to_message(&self) -> Result<Message, serde_json::Error> {
@@ -80,14 +85,14 @@ impl SubRequest {
     }
 }
 
-// TODO: A clean way to select channel (i.e. the currency pair, and any other characteristics)
 // TODO: Don't omit errors.
-pub async fn order_stream(config: DurableWSConfig) -> impl Stream<Item = OrderBook> {
-    // Hardcode URL because this is not intended for use with any other address.
+pub async fn order_stream(
+    symbol: currencies::SymbolPair,
+    config: DurableWSConfig,
+) -> impl Stream<Item = OrderBook> {
+    // Hardcode URL, because this is not intended for use with any other address.
     let url = Url::parse("wss://ws.bitstamp.net").unwrap();
-    let sub_request = SubRequest::new("order_book_ethbtc".to_string())
-        .to_message()
-        .unwrap();
+    let sub_request = SubRequest::new(symbol).to_message().unwrap();
     DurableWebSocket::new(url, config, vec![sub_request])
         .into_stream()
         // Keep only Text messages

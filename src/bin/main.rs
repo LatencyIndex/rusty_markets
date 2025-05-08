@@ -1,6 +1,9 @@
 use futures_util::StreamExt;
 use rust_l2::{
-    market::exchanges::{binance, bitstamp},
+    market::{
+        currencies,
+        exchanges::{binance, bitstamp},
+    },
     network::websocket::DurableWSConfig,
 };
 use std::pin::pin;
@@ -16,7 +19,8 @@ async fn _binance_example() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn _bitstamp_example() -> Result<(), Box<dyn std::error::Error>> {
-    let mut stream = pin!(bitstamp::order_stream(DurableWSConfig::default())
+    let symbol = currencies::SymbolPair::new("ethbtc".to_string())?;
+    let mut stream = pin!(bitstamp::order_stream(symbol, DurableWSConfig::default())
         .await
         .take(3));
     while let Some(x) = stream.next().await {
