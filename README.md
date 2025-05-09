@@ -2,6 +2,8 @@
 
 Homework project for cryptocurrency order book tracking.
 
+Connects to the binance & bitstamp exchanges, and streams their combined order book.
+
 ## TODO
 
 - Take a closer look at exchange's documentation. Do they guarantee the order books are given best-deals-first? Is there a way to get only updates? Are there any other gotchas?
