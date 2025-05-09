@@ -1,32 +1,47 @@
 use futures_util::StreamExt;
 use rust_l2::{
     market::{
-        currencies,
-        exchanges::{binance, bitstamp},
+        currencies::{self},
+        data::{NamedAsk, NamedBid, NamedOrderBook},
+        exchanges,
     },
     network::websocket::DurableWSConfig,
 };
+use serde::Serialize;
 use std::pin::pin;
 
-async fn _binance_example() -> Result<(), Box<dyn std::error::Error>> {
-    let symbol = currencies::SymbolPair::new("ethbtc".to_string())?;
-    let mut stream = pin!(binance::order_stream(&symbol, DurableWSConfig::default()).take(3));
-    while let Some(x) = stream.next().await {
-        println!("{x:#?}");
-    }
-    Ok(())
+#[derive(Clone, Serialize)]
+pub struct DisplayBook {
+    pub spread: f64,
+    pub asks: Vec<NamedAsk>,
+    pub bids: Vec<NamedBid>,
 }
 
-async fn _bitstamp_example() -> Result<(), Box<dyn std::error::Error>> {
-    let symbol = currencies::SymbolPair::new("ethbtc".to_string())?;
-    let mut stream = pin!(bitstamp::order_stream(&symbol, DurableWSConfig::default()).take(3));
-    while let Some(x) = stream.next().await {
-        println!("{x:#?}");
+impl DisplayBook {
+    fn new(book: NamedOrderBook, len: usize) -> Self {
+        let ask = book.asks.first();
+        let bid = book.bids.first();
+        Self {
+            spread: ask
+                .and_then(|a| bid.map(|b| a.price - b.price))
+                .unwrap_or(0.0),
+            asks: book.asks.into_iter().take(len).collect(),
+            bids: book.bids.into_iter().take(len).collect(),
+        }
     }
-    Ok(())
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    _bitstamp_example().await
+async fn main() {
+    let symbol = currencies::SymbolPair::new("ethbtc".to_string()).unwrap();
+    let config = DurableWSConfig::default();
+    let n = 9;
+
+    let mut stream = pin!(exchanges::union_stream(symbol, config)
+        .map(|book| DisplayBook::new(book, 10))
+        .take(n));
+
+    while let Some(book) = stream.next().await {
+        println!("{}", serde_json::to_string_pretty(&book).unwrap());
+    }
 }
