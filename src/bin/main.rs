@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use rust_l2::{
+use rusty_markets::{
     market::{
         currencies::{self},
         data::{NamedAsk, NamedBid, NamedOrderBook},

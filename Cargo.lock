@@ -693,21 +693,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust_l2"
-version = "0.1.0"
-dependencies = [
- "async-stream",
- "futures-util",
- "rand",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-tungstenite",
- "url",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -724,6 +709,21 @@ dependencies = [
  "libc",
  "linux-raw-sys",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "rusty_markets"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "futures-util",
+ "rand",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite",
+ "url",
 ]
 
 [[package]]
