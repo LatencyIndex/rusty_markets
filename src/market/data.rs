@@ -45,19 +45,18 @@ pub struct OrderBook {
     pub bids: Vec<Order>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct NamedBid {
     pub price: f64,
     pub amount: f64,
-    pub exchange: String,
 }
 
 impl NamedBid {
     pub fn new(exchange: String, order: Order) -> Self {
         Self {
+            exchange,
             price: order.price,
             amount: order.amount,
-            exchange,
         }
     }
 }
@@ -85,19 +84,19 @@ impl Ord for NamedBid {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct NamedAsk {
+    pub exchange: String,
     pub price: f64,
     pub amount: f64,
-    pub exchange: String,
 }
 
 impl NamedAsk {
     pub fn new(exchange: String, order: Order) -> Self {
         Self {
+            exchange,
             price: order.price,
             amount: order.amount,
-            exchange,
         }
     }
 }
@@ -126,6 +125,7 @@ impl Ord for NamedAsk {
     }
 }
 
+#[derive(Clone, Serialize)]
 pub struct NamedOrderBook {
     pub asks: Vec<NamedAsk>,
     pub bids: Vec<NamedBid>,
