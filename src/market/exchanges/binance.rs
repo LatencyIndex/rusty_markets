@@ -1,7 +1,7 @@
 use crate::{
     market::{
         currencies,
-        data::{NamedOrderBook, Order, OrderBook, ParseError},
+        data::{Order, OrderBook, ParseError},
     },
     network::websocket::{DurableWSConfig, DurableWebSocket},
 };
@@ -72,11 +72,4 @@ pub fn order_stream(
                 _ => None,
             }
         })
-}
-
-pub fn named_order_stream(
-    symbol: &currencies::SymbolPair,
-    config: DurableWSConfig,
-) -> impl Stream<Item = NamedOrderBook> {
-    order_stream(symbol, config).map(|order_book| NamedOrderBook::new("binance", &order_book))
 }

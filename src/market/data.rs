@@ -47,6 +47,7 @@ pub struct OrderBook {
 
 #[derive(Serialize, Clone)]
 pub struct NamedBid {
+    pub exchange: String,
     pub price: f64,
     pub amount: f64,
 }
@@ -129,21 +130,4 @@ impl Ord for NamedAsk {
 pub struct NamedOrderBook {
     pub asks: Vec<NamedAsk>,
     pub bids: Vec<NamedBid>,
-}
-
-impl NamedOrderBook {
-    pub fn new(exchange: &str, book: &OrderBook) -> Self {
-        Self {
-            asks: book
-                .asks
-                .iter()
-                .map(|&ask| NamedAsk::new(exchange.to_string(), ask))
-                .collect(),
-            bids: book
-                .bids
-                .iter()
-                .map(|&bid| NamedBid::new(exchange.to_string(), bid))
-                .collect(),
-        }
-    }
 }
