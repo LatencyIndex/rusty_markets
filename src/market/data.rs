@@ -126,9 +126,7 @@ impl Ord for NamedAsk {
     }
 }
 
-#[derive(Serialize)]
 pub struct NamedOrderBook {
-    pub spread: f64,
     pub asks: Vec<NamedAsk>,
     pub bids: Vec<NamedBid>,
 }
@@ -136,7 +134,6 @@ pub struct NamedOrderBook {
 impl NamedOrderBook {
     pub fn new(exchange: &str, book: &OrderBook) -> Self {
         Self {
-            spread: 0.0, // TODO
             asks: book
                 .asks
                 .iter()
