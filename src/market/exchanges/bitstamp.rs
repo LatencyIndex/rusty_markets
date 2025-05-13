@@ -10,7 +10,6 @@ use crate::{
 use futures_util::{Stream, StreamExt};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use tokio_tungstenite::tungstenite::Message;
 use url::Url;
 
@@ -33,13 +32,6 @@ struct BitstampRawOrderBook {
     channel: String,
     data: BitstampRawBidsAsks,
     event: String,
-}
-
-impl FromStr for BitstampRawOrderBook {
-    type Err = ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str::<BitstampRawOrderBook>(s).map_err(Self::Err::from)
-    }
 }
 
 impl TryFrom<BitstampRawOrderBook> for OrderBook {
@@ -101,9 +93,8 @@ pub fn order_stream(
             match x {
                 // Don't use Message's own .to_text() method,
                 // because it will try to convert binary Messages also.
-                Message::Text(msg) => msg
-                    .as_str()
-                    .parse::<BitstampRawOrderBook>()
+                Message::Text(msg) => serde_json::from_str::<BitstampRawOrderBook>(msg.as_str())
+                    .map_err(ParseError::from)
                     .and_then(OrderBook::try_from)
                     .ok(),
                 _ => None,
