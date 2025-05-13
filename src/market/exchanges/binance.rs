@@ -20,7 +20,6 @@ use url::Url;
 struct BinanceRawOrderBook {
     asks: Vec<Vec<Decimal>>,
     bids: Vec<Vec<Decimal>>,
-    // TODO: Is this the right number type?
     lastUpdateId: u128,
 }
 
@@ -41,7 +40,6 @@ impl TryFrom<BinanceRawOrderBook> for OrderBook {
     }
 }
 
-// TODO: Don't omit errors.
 pub fn order_stream(
     symbol: currencies::SymbolPair,
     config: DurableWSConfig,
@@ -52,7 +50,7 @@ pub fn order_stream(
     .unwrap();
     DurableWebSocket::new(url, config, vec![])
         .into_stream()
-        // Keep only Text messages
+        // Keep only Text messages that can be successfuly parsed
         .filter_map(|x| async {
             match x {
                 // Don't use Message's own .to_text() method,

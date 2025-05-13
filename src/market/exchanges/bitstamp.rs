@@ -78,7 +78,6 @@ impl SubRequest {
     }
 }
 
-// TODO: Don't omit errors.
 pub fn order_stream(
     symbol: currencies::SymbolPair,
     config: DurableWSConfig,
@@ -88,7 +87,7 @@ pub fn order_stream(
     let sub_request = SubRequest::new(symbol).to_message().unwrap();
     DurableWebSocket::new(url, config, vec![sub_request])
         .into_stream()
-        // Keep only Text messages
+        // Keep only Text messages that can be successfuly parsed
         .filter_map(|x| async {
             match x {
                 // Don't use Message's own .to_text() method,
