@@ -8,6 +8,7 @@ use crate::{
     network::websocket::{DurableWSConfig, DurableWebSocket},
 };
 use futures_util::{Stream, StreamExt};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use tokio_tungstenite::tungstenite::Message;
@@ -19,8 +20,8 @@ use url::Url;
 #[derive(Deserialize, Debug)]
 #[allow(unused)]
 struct BitstampRawBidsAsks {
-    asks: Vec<Vec<String>>,
-    bids: Vec<Vec<String>>,
+    asks: Vec<Vec<Decimal>>,
+    bids: Vec<Vec<Decimal>>,
     microtimestamp: String,
     timestamp: String,
 }

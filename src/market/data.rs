@@ -2,10 +2,7 @@
 
 use rust_decimal::Decimal;
 use serde::Serialize;
-use std::{
-    cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
-    str::FromStr,
-};
+use std::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -24,21 +21,14 @@ pub struct Order {
     pub amount: Decimal,
 }
 
-impl TryFrom<&Vec<String>> for Order {
+impl TryFrom<&Vec<Decimal>> for Order {
     type Error = ParseError;
     /// Parse a [price, amount] array of length 2.
-    fn try_from(value: &Vec<String>) -> Result<Self, Self::Error> {
-        let parsed: Result<Vec<Decimal>, ParseError> = value
-            .iter()
-            .map(|x| Decimal::from_str(x).map_err(ParseError::from))
-            .collect();
-        match parsed {
-            Ok(parsed) => match *parsed.as_slice() {
-                // Ordering is very important, to not confuse price & amount.
-                [price, amount] => Ok(Order { price, amount }),
-                _ => Err(ParseError::LengthError),
-            },
-            Err(e) => Err(e),
+    fn try_from(value: &Vec<Decimal>) -> Result<Self, Self::Error> {
+        match *value.as_slice() {
+            // Ordering is very important, to not confuse price & amount.
+            [price, amount] => Ok(Order { price, amount }),
+            _ => Err(ParseError::LengthError),
         }
     }
 }

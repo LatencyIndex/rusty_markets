@@ -6,6 +6,7 @@ use crate::{
     network::websocket::{DurableWSConfig, DurableWebSocket},
 };
 use futures_util::{Stream, StreamExt};
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use std::str::FromStr;
 use tokio_tungstenite::tungstenite::Message;
@@ -18,8 +19,8 @@ use url::Url;
 #[allow(non_snake_case)]
 #[allow(unused)]
 struct BinanceRawOrderBook {
-    asks: Vec<Vec<String>>,
-    bids: Vec<Vec<String>>,
+    asks: Vec<Vec<Decimal>>,
+    bids: Vec<Vec<Decimal>>,
     // TODO: Is this the right number type?
     lastUpdateId: u128,
 }
