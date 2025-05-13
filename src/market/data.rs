@@ -1,13 +1,17 @@
 //! Elemental market datatypes, not specific to any exchange.
 
+use rust_decimal::Decimal;
 use serde::Serialize;
-use std::cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd};
+use std::{
+    cmp::{Eq, Ord, Ordering, PartialEq, PartialOrd},
+    str::FromStr,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ParseError {
     #[error(transparent)]
-    ParseFloatError(#[from] std::num::ParseFloatError),
+    ParseDecimalError(#[from] rust_decimal::Error),
     #[error("incorrect array length")]
     LengthError,
     #[error(transparent)]
@@ -16,16 +20,17 @@ pub enum ParseError {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Order {
-    pub price: f64,
-    pub amount: f64,
+    pub price: Decimal,
+    pub amount: Decimal,
 }
 
 impl TryFrom<&Vec<String>> for Order {
     type Error = ParseError;
+    /// Parse a [price, amount] array of length 2.
     fn try_from(value: &Vec<String>) -> Result<Self, Self::Error> {
-        let parsed: Result<Vec<f64>, ParseError> = value
+        let parsed: Result<Vec<Decimal>, ParseError> = value
             .iter()
-            .map(|x| x.parse().map_err(ParseError::from))
+            .map(|x| Decimal::from_str(x).map_err(ParseError::from))
             .collect();
         match parsed {
             Ok(parsed) => match *parsed.as_slice() {
@@ -48,8 +53,8 @@ pub struct OrderBook {
 #[derive(Serialize, Clone)]
 pub struct NamedBid {
     pub exchange: String,
-    pub price: f64,
-    pub amount: f64,
+    pub price: Decimal,
+    pub amount: Decimal,
 }
 
 impl NamedBid {
@@ -80,16 +85,16 @@ impl PartialOrd for NamedBid {
 impl Ord for NamedBid {
     fn cmp(&self, other: &Self) -> Ordering {
         self.price
-            .total_cmp(&other.price)
-            .then(self.amount.total_cmp(&other.amount))
+            .cmp(&other.price)
+            .then(self.amount.cmp(&other.amount))
     }
 }
 
 #[derive(Serialize, Clone)]
 pub struct NamedAsk {
     pub exchange: String,
-    pub price: f64,
-    pub amount: f64,
+    pub price: Decimal,
+    pub amount: Decimal,
 }
 
 impl NamedAsk {
@@ -120,9 +125,9 @@ impl PartialOrd for NamedAsk {
 impl Ord for NamedAsk {
     fn cmp(&self, other: &Self) -> Ordering {
         self.price
-            .total_cmp(&other.price)
+            .cmp(&other.price)
             .reverse()
-            .then(self.amount.total_cmp(&other.amount))
+            .then(self.amount.cmp(&other.amount))
     }
 }
 
