@@ -71,11 +71,12 @@ impl PartialOrd for NamedBid {
     }
 }
 
-/// The better bid (greater price, then greater amount) compares greater.
+/// The better bid (greater price, then greater amount) compares smaller, i.e. it comes first.
 impl Ord for NamedBid {
     fn cmp(&self, other: &Self) -> Ordering {
         self.price
             .cmp(&other.price)
+            .reverse()
             .then(self.amount.cmp(&other.amount))
     }
 }
@@ -111,12 +112,11 @@ impl PartialOrd for NamedAsk {
     }
 }
 
-/// The better ask (lower price, then greater amount) compares greater.
+/// The better ask (lower price, then greater amount) compares smaller, i.e. it comes first.
 impl Ord for NamedAsk {
     fn cmp(&self, other: &Self) -> Ordering {
         self.price
             .cmp(&other.price)
-            .reverse()
             .then(self.amount.cmp(&other.amount))
     }
 }

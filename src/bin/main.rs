@@ -1,7 +1,6 @@
 use futures_util::StreamExt;
 use rust_decimal::Decimal;
 use rusty_markets::{
-    lsl::slice::sort_descending,
     market::{
         currencies::{self},
         data::{NamedAsk, NamedBid, NamedOrderBook},
@@ -25,8 +24,8 @@ impl DisplayBook {
         // Asks and bids should already be sorted correctly,
         // but this is not guaranteed, so we sort again,
         // instead of statically requiring that NamedOrderBook is always sorted.
-        sort_descending(&mut book.asks);
-        sort_descending(&mut book.bids);
+        book.asks.sort();
+        book.bids.sort();
         Self {
             spread: match (book.asks.first(), book.bids.first()) {
                 (Some(ask), Some(bid)) => ask.price - bid.price,

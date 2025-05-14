@@ -4,7 +4,6 @@ pub mod binance;
 pub mod bitstamp;
 
 use crate::{
-    lsl::slice::sort_descending,
     market::{
         currencies::{self},
         data::{NamedAsk, NamedBid, NamedOrderBook, OrderBook},
@@ -32,10 +31,9 @@ fn merge_order_books(order_books: &HashMap<String, OrderBook>) -> NamedOrderBook
                 .map(|&bid| NamedBid::new(exchange.to_string(), bid))
         })
         .collect();
-    // Asks & bids compare greater if they are better (higher bid, lower ask),
-    // so sorting to descending order places the best asks & bids first.
-    sort_descending(&mut asks);
-    sort_descending(&mut bids);
+    // Sort in ascending order so that better asks & bids are first (they compare smaller)
+    asks.sort();
+    bids.sort();
     NamedOrderBook { asks, bids }
 }
 
