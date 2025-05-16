@@ -39,10 +39,7 @@ where
 pub struct DurableWSConfig {
     /// If longer than this is spent waiting to receive a message, the connection is considered dead,
     /// is dropped, and a re-connect and re-send are attempted.
-    pub retry_timeout: Duration,
-    /// If a receive attempt does not complete within this duration,
-    /// the connection is considered irreparable, and no further attempts are made.
-    pub final_timeout: Duration,
+    pub recv_timeout: Duration,
     /// Exponential backoff parameters for reconnection attempts.
     pub backoff: ExpBackoffConfig,
 }
@@ -50,8 +47,7 @@ pub struct DurableWSConfig {
 impl Default for DurableWSConfig {
     fn default() -> Self {
         Self {
-            retry_timeout: Duration::from_secs(10),
-            final_timeout: Duration::from_secs(60),
+            recv_timeout: Duration::from_secs(10),
             backoff: ExpBackoffConfig {
                 wait_min: Duration::from_secs(2),
                 wait_max: Duration::from_secs(60),
@@ -70,6 +66,15 @@ pub struct DurableWebSocket<R> {
     backoff: ExpBackoff,
 }
 
+pub enum DurableMessage {
+    /// Successfully received a message from the underlying websocket.
+    Recv(Message),
+    /// Timeout elapsed while trying to receive a new message.
+    /// Will keep trying to receive, but no further timeouts
+    /// will be sent until at least one valid message is received again.
+    TimeoutElapsed,
+}
+
 impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
     /// On each reconnect, inits are sent through the stream.
     /// Intended to initialize the connection by e.g. subscribing to channels.
@@ -83,7 +88,7 @@ impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
         }
     }
     /// Continuously tries to receive a message, reconnecting as necessary.
-    pub async fn recv(&mut self) -> Message {
+    pub async fn recv(&mut self) -> DurableMessage {
         loop {
             match &mut self.stream {
                 // Disconnected - try to connect
@@ -98,7 +103,7 @@ impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
                         .backoff
                         .remaining_wait()
                         .unwrap_or(Duration::ZERO)
-                        .max(self.config.retry_timeout);
+                        .max(self.config.recv_timeout);
                     // Try to reconnect
                     self.stream = timeout(
                         extended_timeout,
@@ -114,33 +119,25 @@ impl<R: IntoClientRequest + Unpin + Clone> DurableWebSocket<R> {
                 }
                 // Connected - try to receive a message
                 Some(stream) => {
-                    match timeout(self.config.retry_timeout, stream.next()).await {
+                    match timeout(self.config.recv_timeout, stream.next()).await {
                         // Non-error message received within timeout
-                        Ok(Some(Ok(msg))) => return msg,
+                        Ok(Some(Ok(msg))) => return DurableMessage::Recv(msg),
                         // Anything else is interpreted as the stream needing a reconnect.
-                        _ => self.stream = None,
+                        _ => {
+                            self.stream = None;
+                            return DurableMessage::TimeoutElapsed;
+                        }
                     }
                 }
             }
         }
     }
-    /// Yields None only when the connection is deemed unrecoverable.
-    /// However, calling it again will launch new connection attempts,
-    /// which may eventually succeed, so a Some could be returned even after a None.
-    pub async fn try_recv(&mut self) -> Option<Message> {
-        timeout(self.config.final_timeout, self.recv()).await.ok()
-    }
-    /// Drop connection and reset exponential backoff.
-    pub fn reset(&mut self) {
-        self.stream = None;
-        self.backoff.reset();
-    }
     /// Convert into a stream via try_recv.
     // Implementing the Stream trait is 'non-trivial', so we settle for converting into a new Stream object.
-    pub fn into_stream(mut self) -> impl Stream<Item = Message> {
+    pub fn into_stream(mut self) -> impl Stream<Item = DurableMessage> {
         stream! {
-            while let Some(msg) = self.try_recv().await {
-                yield msg;
+            loop {
+                yield self.recv().await;
             }
         }
     }

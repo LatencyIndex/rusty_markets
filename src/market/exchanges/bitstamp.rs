@@ -5,7 +5,7 @@ use crate::{
         currencies,
         data::{Order, OrderBook, ParseError},
     },
-    network::websocket::{DurableWSConfig, DurableWebSocket},
+    network::websocket::{DurableMessage, DurableWSConfig, DurableWebSocket},
 };
 use futures_util::{Stream, StreamExt};
 use rust_decimal::Decimal;
@@ -92,10 +92,12 @@ pub fn order_stream(
             match x {
                 // Don't use Message's own .to_text() method,
                 // because it will try to convert binary Messages also.
-                Message::Text(msg) => serde_json::from_str::<BitstampRawOrderBook>(msg.as_str())
-                    .map_err(ParseError::from)
-                    .and_then(OrderBook::try_from)
-                    .ok(),
+                DurableMessage::Recv(Message::Text(msg)) => {
+                    serde_json::from_str::<BitstampRawOrderBook>(msg.as_str())
+                        .map_err(ParseError::from)
+                        .and_then(OrderBook::try_from)
+                        .ok()
+                }
                 _ => None,
             }
         })
