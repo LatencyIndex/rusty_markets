@@ -66,6 +66,7 @@ pub struct DurableWebSocket<R> {
     backoff: ExpBackoff,
 }
 
+#[derive(Debug)]
 pub enum DurableMessage {
     /// Successfully received a message from the underlying websocket.
     Recv(Message),
