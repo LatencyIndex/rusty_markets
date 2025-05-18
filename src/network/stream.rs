@@ -23,7 +23,7 @@ pub fn splice<T, S, I>(streams: I) -> mpsc::Receiver<T>
 where
     T: Send + 'static,
     S: Stream<Item = T> + Send + 'static,
-    I: Iterator<Item = S>,
+    I: IntoIterator<Item = S>,
 {
     let (tx, rx) = mpsc::channel(8);
     for stream in streams {
