@@ -83,11 +83,15 @@ impl<T: Clone + Ord> KMinTree<T> {
     pub fn nb_leaves(&self) -> usize {
         self.nb_leaves
     }
-    /// Set leaf to the new value, and return the new min k elements, if they have changed.
+    /// The tree has zero leaves (making it useless).
+    pub fn is_empty(&self) -> bool {
+        self.nb_leaves == 0
+    }
+    /// Set leaf to the new value, and return true if the new min k elements have changed.
     /// Value does not have to be sorted.
     /// Runs in O(k*log(min(k, nb_leaves))) average time.
     /// Panics unless index < self.nb_leaves()
-    pub fn update_leaf(&mut self, mut index: usize, mut value: Vec<T>) -> Option<&Vec<T>> {
+    pub fn update_leaf(&mut self, mut index: usize, mut value: Vec<T>) -> bool {
         assert!(index < self.nb_leaves, "leaf index out of bounds");
         value.sort();
         value.truncate(self.k);
@@ -95,7 +99,7 @@ impl<T: Clone + Ord> KMinTree<T> {
         loop {
             if self.nodes[index].value == value {
                 // Value did not change, so we can stop
-                return None;
+                return false;
             } else {
                 // Update current node's value
                 self.nodes[index].value = value;
@@ -107,11 +111,15 @@ impl<T: Clone + Ord> KMinTree<T> {
                     index = parent;
                 } else {
                     // We just changed root's value, meaning some of the first n elements have changed,
-                    // so we return the new values.
-                    return Some(&self.nodes[index].value);
+                    return true;
                 }
             }
         }
+    }
+    /// Return the k smallest elements of the union of leaf nodes.
+    /// Panics if empty. I.e. if the tree has zero leaves.
+    pub fn get(&self) -> &Vec<T> {
+        &self.nodes.last().unwrap().value
     }
 }
 
@@ -158,17 +166,9 @@ mod tests {
                     leaves[i] = v.clone();
                     let first_after = smallest_n_simple(k, &leaves);
 
-                    match tree.update_leaf(i, v) {
-                        None => {
-                            // First n have not changed
-                            assert_eq!(first_before, first_after);
-                        }
-                        Some(first) => {
-                            // First n have changed
-                            assert_ne!(first_before, first_after);
-                            assert_eq!(first, &first_after);
-                        }
-                    }
+                    let changed = tree.update_leaf(i, v);
+                    assert_eq!(first_before != first_after, changed);
+                    assert_eq!(tree.get(), &first_after);
                 }
             }
         }
