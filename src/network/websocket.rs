@@ -1,6 +1,7 @@
 use crate::network::backoff::{ExpBackoff, ExpBackoffConfig};
 use async_stream::stream;
 use futures_util::{SinkExt, Stream, StreamExt};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::{
     net::TcpStream,
@@ -35,7 +36,7 @@ where
     Ok(stream)
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct DurableWSConfig {
     /// If longer than this is spent waiting to receive a message, the connection is considered dead,
     /// is dropped, and a re-connect and re-send are attempted.

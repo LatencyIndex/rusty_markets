@@ -2,6 +2,7 @@
 name = "rusty_markets"
 version = "0.1.0"
 edition = "2024"
+default-run = "main"
 
 [dependencies]
 async-stream = "0.3.6"

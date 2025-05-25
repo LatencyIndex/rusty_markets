@@ -1,7 +1,8 @@
 use rand::{rngs::SmallRng, Rng, SeedableRng};
+use serde::{Deserialize, Serialize};
 use tokio::time::{Duration, Instant};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct ExpBackoffConfig {
     pub wait_min: Duration,
     pub wait_max: Duration,
