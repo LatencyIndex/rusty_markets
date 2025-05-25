@@ -6,9 +6,13 @@ use rusty_markets::{
         data::{Ask, Bid, OrderBookFormat},
         order_stream, ExchangeConfig,
     },
-    network::{stream::splice, websocket::DurableWSConfig},
+    network::{
+        stream::{expire, splice},
+        websocket::DurableWSConfig,
+    },
 };
 use serde::Serialize;
+use tokio::time::Duration;
 
 #[derive(Clone, Serialize)]
 pub struct DisplayOrder<'a> {
@@ -72,6 +76,7 @@ async fn main() {
         },
     ];
     let connection_config = DurableWSConfig::default();
+    let order_lifetime = Duration::from_secs(8);
     let nb_orders: usize = 10;
 
     let exchange_labels: Vec<&str> = exchange_configs
@@ -85,22 +90,28 @@ async fn main() {
         .iter()
         .enumerate()
         .map(|(exchange_id, exchange_config)| {
-            order_stream(exchange_config.clone(), connection_config, exchange_id)
-                // Tag messages with their source
-                .map(move |msg| (exchange_id, msg))
+            expire(
+                order_lifetime,
+                order_stream(exchange_config.clone(), connection_config, exchange_id)
+                    // Omit errors, so that they don't interfere with expiry messages.
+                    .filter_map(|msg| async { msg.ok() }),
+            )
+            // Tag messages with their source
+            .map(move |msg| (exchange_id, msg))
         });
     // Join the tagged streams
     let mut stream = splice(streams);
     while let Some((exchange_id, msg)) = stream.recv().await {
-        if let Ok(order_book) = msg {
-            let asks_changed = asks.update_leaf(exchange_id, order_book.asks);
-            let bids_changed = bids.update_leaf(exchange_id, order_book.bids);
-            let book_changed = asks_changed || bids_changed;
-            if book_changed {
-                let book = DisplayBook::new(asks.get(), bids.get(), &exchange_labels);
-                let json = serde_json::to_string_pretty(&book).unwrap();
-                println!("{json}");
-            }
+        // msg is Err only if the order has expired.
+        // In which case we use the default, empty order book, to clear this exchange's order.
+        let order_book = msg.unwrap_or_default();
+        let asks_changed = asks.update_leaf(exchange_id, order_book.asks);
+        let bids_changed = bids.update_leaf(exchange_id, order_book.bids);
+        let book_changed = asks_changed || bids_changed;
+        if book_changed {
+            let book = DisplayBook::new(asks.get(), bids.get(), &exchange_labels);
+            let json = serde_json::to_string_pretty(&book).unwrap();
+            println!("{json}");
         }
     }
 }
