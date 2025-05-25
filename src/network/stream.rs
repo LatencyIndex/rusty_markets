@@ -1,6 +1,9 @@
+use async_stream::stream;
 use futures_util::{Stream, StreamExt};
 use std::pin::pin;
 use tokio::sync::mpsc;
+use tokio::time::error::Elapsed;
+use tokio::time::{timeout, Duration};
 
 /// Redirect the stream output into the mpsc channel.
 fn splice_stream<T, S>(stream: S, tx: mpsc::Sender<T>)
@@ -30,6 +33,38 @@ where
         splice_stream(stream, tx.clone());
     }
     rx
+}
+
+/// If no message is received for more than 'lifetime', sends an Err<Elapsed>
+/// This notifies the recipient that the validity of the last message has expired.
+/// Sends at most one expiry notification per message.
+/// I.e. never sends consecutive expiry notifications.
+pub fn expire<T>(
+    lifetime: Duration,
+    stream: impl Stream<Item = T>,
+) -> impl Stream<Item = Result<T, Elapsed>> {
+    stream! {
+        let mut stream = pin!(stream);
+        // Transmit first message normally, since there is nothing to expire yet.
+        if let Some(msg) = stream.next().await {
+            yield Ok(msg);
+        }
+        loop {
+            match timeout(lifetime, stream.next()).await {
+                Ok(Some(msg)) => yield Ok(msg),
+                Ok(None) => break,
+                Err(elapsed) => {
+                    yield Err(elapsed);
+                    // Previous message was already expired, so we await next one without timeout,
+                    // since we don't have to send any more expiry events.
+                    match stream.next().await {
+                        Some(msg) => yield Ok(msg),
+                        None => break,
+                    }
+                },
+            }
+        }
+    }
 }
 
 #[cfg(test)]
