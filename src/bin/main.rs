@@ -56,50 +56,51 @@ impl<'a> DisplayBook<'a> {
 
 #[tokio::main]
 async fn main() {
+    // Read program input
     let args: Vec<String> = std::env::args().collect();
-    if let [_program_name, config_file] = &args[..] {
-        let config = std::fs::read_to_string(config_file).unwrap();
-        let config: Config = serde_json::from_str(&config).unwrap();
+    let config = match &args[..] {
+        [_program_name, config] => config,
+        _ => panic!("Error: exactly one argument required - the config file path"),
+    };
+    let config =
+        std::fs::read_to_string(config).expect("Error: could not read config file {config}");
+    let config: Config = serde_json::from_str(&config).expect("Error parsing config file");
 
-        let exchange_labels: Vec<&str> = config
-            .exchanges
-            .iter()
-            .map(|conf| conf.label.as_str())
-            .collect();
-        let mut asks: KMinTree<Ask> = KMinTree::new(config.nb_orders, config.exchanges.len());
-        let mut bids: KMinTree<Bid> = KMinTree::new(config.nb_orders, config.exchanges.len());
+    let exchange_labels: Vec<&str> = config
+        .exchanges
+        .iter()
+        .map(|conf| conf.label.as_str())
+        .collect();
+    let mut asks: KMinTree<Ask> = KMinTree::new(config.nb_orders, config.exchanges.len());
+    let mut bids: KMinTree<Bid> = KMinTree::new(config.nb_orders, config.exchanges.len());
 
-        let streams = config
-            .exchanges
-            .iter()
-            .enumerate()
-            .map(|(exchange_id, exchange_config)| {
-                expire(
-                    config.order_lifetime,
-                    order_stream(exchange_config.clone(), config.connection, exchange_id)
-                        // Omit errors, so that they don't interfere with expiry messages.
-                        .filter_map(|msg| async { msg.ok() }),
-                )
-                // Tag messages with their source
-                .map(move |msg| (exchange_id, msg))
-            });
-        // Join the tagged streams
-        let mut stream = splice(streams);
-        while let Some((exchange_id, msg)) = stream.recv().await {
-            // msg is Err only if the order has expired.
-            // In which case we use the default, empty order book, to clear this exchange's order.
-            let order_book = msg.unwrap_or_default();
-            let asks_changed = asks.update_leaf(exchange_id, order_book.asks);
-            let bids_changed = bids.update_leaf(exchange_id, order_book.bids);
-            let book_changed = asks_changed || bids_changed;
-            if book_changed {
-                let book = DisplayBook::new(asks.get(), bids.get(), &exchange_labels);
-                let json = serde_json::to_string_pretty(&book).unwrap();
-                println!("{json}");
-            }
+    let streams = config
+        .exchanges
+        .iter()
+        .enumerate()
+        .map(|(exchange_id, exchange_config)| {
+            expire(
+                config.order_lifetime,
+                order_stream(exchange_config.clone(), config.connection, exchange_id)
+                    // Omit errors, so that they don't interfere with expiry messages.
+                    .filter_map(|msg| async { msg.ok() }),
+            )
+            // Tag messages with their source
+            .map(move |msg| (exchange_id, msg))
+        });
+    // Join the tagged streams
+    let mut stream = splice(streams);
+    while let Some((exchange_id, msg)) = stream.recv().await {
+        // msg is Err only if the order has expired.
+        // In which case we use the default, empty order book, to clear this exchange's order.
+        let order_book = msg.unwrap_or_default();
+        let asks_changed = asks.update_leaf(exchange_id, order_book.asks);
+        let bids_changed = bids.update_leaf(exchange_id, order_book.bids);
+        let book_changed = asks_changed || bids_changed;
+        if book_changed {
+            let book = DisplayBook::new(asks.get(), bids.get(), &exchange_labels);
+            let json = serde_json::to_string_pretty(&book).unwrap();
+            println!("{json}");
         }
-    } else {
-        println!("Error: exactly one argument required - the config file path.");
-        return;
     }
 }
